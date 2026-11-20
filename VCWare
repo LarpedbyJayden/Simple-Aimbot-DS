@@ -635,3 +635,39 @@ local function get_nearest_target()
         if not hum or hum.Health <= 0 then continue end
 
         if Config.Aimbot.TeamCheck and is_same_
+team(player) then continue end
+
+        local target_part = char:FindFirstChild(Config.Aimbot.TargetPart)
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not target_part or not root then continue end
+
+        local dist = (root.Position - my_root.Position).Magnitude
+        if dist > Config.Aimbot.MaxDistance then continue end
+
+        local screen_pos, on_screen = Camera:WorldToViewportPoint(target_part.Position)
+        if not on_screen then continue end
+        local fov_dist = (Vector2.new(screen_pos.X, screen_pos.Y) - origin).Magnitude
+        if fov_dist > Config.Aimbot.FOV then continue end
+
+        if Config.Aimbot.WallCheck
+           and not is_wall_clear(my_head.Position, target_part.Position, char) then
+            continue
+        end
+
+        if dist < best_dist then
+            best_dist = dist
+            best_player = player
+        end
+    end
+    return best_player
+end
+
+RunService.RenderStepped:Connect(function()
+    if not aiming or not Config.Aimbot.Enabled then return end
+    local target = get_nearest_target()
+    if not target or not target.Character then return end
+    local target_part = target.Character:FindFirstChild(Config.Aimbot.TargetPart)
+    if not target_part then return end
+    local desired = CFrame.new(Camera.CFrame.Position, target_part.Position)
+    Camera.CFrame = Camera.CFrame:Lerp(desired, Config.Aimbot.Smoothness)
+end)
